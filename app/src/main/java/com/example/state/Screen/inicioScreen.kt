@@ -27,9 +27,7 @@ import androidx.compose.ui.unit.sp
 @Composable
 fun InicioScreen(modifier: Modifier, numero: Int, miclick: () -> Unit) {
 
-
     Column(modifier = modifier) {
-
         Text(text =  "$numero", fontSize = 80.sp)
 
         Spacer(modifier = Modifier.padding(10.dp))
@@ -39,6 +37,5 @@ fun InicioScreen(modifier: Modifier, numero: Int, miclick: () -> Unit) {
         }) {
             Text("Incrementar")
         }
-
     }
 }
