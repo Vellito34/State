@@ -1,6 +1,7 @@
 package com.example.state.Screen
 
 import android.service.autofill.OnClickAction
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -24,46 +25,20 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
 @Composable
-fun InicioScreen(modifier: Modifier, numero: Int, miclick: () -> Unit, other: () -> Unit) {
-    var y by rememberSaveable() { mutableStateOf("0") }
-    var x by rememberSaveable() { mutableStateOf("0") }
-    var ans by rememberSaveable() { mutableStateOf(0) }
+fun InicioScreen(modifier: Modifier, numero: Int, miclick: () -> Unit) {
+
 
     Column(modifier = modifier) {
-        TextField(
-            value = x,
-            onValueChange = { nuevo -> x = nuevo.filter { it.isDigit() } },
-            label = { Text("Numero 1") },
-            placeholder = { Text("Escribe el valor 1") },
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
-        )
 
-        Spacer(modifier = Modifier.padding(10.dp))
-
-        TextField(
-            value = y,
-            onValueChange = { nuevo -> y = nuevo.filter { it.isDigit() } },
-            label = { Text("Numero 2") },
-            placeholder = { Text("Escribe el valor 2") },
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
-        )
+        Text(text =  "$numero", fontSize = 80.sp)
 
         Spacer(modifier = Modifier.padding(10.dp))
 
         Button(onClick = {
-            if (x.isEmpty()){return@Button}
-            ans = x.toInt() + y.toInt() }) {
-            Text("Sumar")
+            miclick()
+        }) {
+            Text("Incrementar")
         }
 
-        Spacer(modifier = Modifier.padding(10.dp))
-
-        Button(onClick = {ans = x.toInt() - y.toInt()}) {
-            Text("Restar")
-        }
-        Spacer(modifier = Modifier.padding(10.dp))
-
-        Text("Resultado: " + ans, fontSize = 50.sp)
     }
 }
-

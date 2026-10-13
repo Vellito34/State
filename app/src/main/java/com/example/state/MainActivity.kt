@@ -29,8 +29,7 @@ class MainActivity : ComponentActivity() {
                     InicioScreen(
                         modifier = Modifier.padding(innerPadding),
                         x,
-                        { x += 1 },
-                        {x -= x}
+                        { x += 1 }
 
                     )
                 }
