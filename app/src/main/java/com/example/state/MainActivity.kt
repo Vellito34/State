@@ -12,6 +12,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
@@ -25,13 +26,10 @@ class MainActivity : ComponentActivity() {
         setContent {
             StateTheme {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    var x by remember { mutableStateOf(0) }
+                    var x by rememberSaveable() { mutableStateOf(0.00) }
+                    var y by rememberSaveable() { mutableStateOf(0.00) }
                     InicioScreen(
-                        modifier = Modifier.padding(innerPadding),
-                        x,
-                        { x += 1 },
-                        {x -= x}
-
+                        modifier = Modifier.padding(innerPadding)
                     )
                 }
             }
