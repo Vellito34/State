@@ -1,6 +1,7 @@
 package com.example.state.Screen
 
 import android.service.autofill.OnClickAction
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -142,7 +143,19 @@ fun afore(modifier: Modifier) {
                 ) { Text("+ Entra") }
 
             }
+            Spacer(modifier = Modifier.padding(10.dp))
 
+            Button(
+                onClick = {
+                    if (personasActuales < (capacidad - 4))
+                        personasActuales = (personasActuales + 5).coerceAtMost(capacidad)
+                    visitasDelDia = (visitasDelDia + 5)
+
+                },
+                enabled = personasActuales < (capacidad - 4),
+                modifier = Modifier.fillMaxWidth()
+            ) { Text("+ 5") }
+            Spacer(modifier = Modifier.padding(20.dp))
             Card() {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -162,14 +175,15 @@ fun afore(modifier: Modifier) {
 
                 }
             }
-
+            Spacer(modifier = Modifier.padding(40.dp))
             Button(
                 onClick = {
                     personasActuales = 0
                     visitasDelDia = 0
                 },
                 modifier = Modifier.fillMaxWidth(),
-            ) { Text("Cerrar dia") }
+                border = BorderStroke(1.dp, Color.Red)
+            ) { Text(text = "Cerrar dia",color = Color.Red) }
         }
     }
 
