@@ -15,7 +15,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
-import com.example.state.Screen.InicioScreen
+import com.example.state.Screen.screen
 import com.example.state.ui.theme.StateTheme
 
 class MainActivity : ComponentActivity() {
@@ -26,11 +26,8 @@ class MainActivity : ComponentActivity() {
             StateTheme {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
                     var x by remember { mutableStateOf(0) }
-                    InicioScreen(
-                        modifier = Modifier.padding(innerPadding),
-                        x,
-                        { x += 1 },
-                        {x -= x}
+                    screen(
+                        modifier = Modifier.padding(innerPadding)
 
                     )
                 }
