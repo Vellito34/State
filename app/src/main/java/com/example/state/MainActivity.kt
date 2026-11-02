@@ -28,10 +28,6 @@ class MainActivity : ComponentActivity() {
                     var x by remember { mutableStateOf(0) }
                     InicioScreen(
                         modifier = Modifier.padding(innerPadding),
-                        x,
-                        { x += 1 },
-                        {x -= x}
-
                     )
                 }
             }
