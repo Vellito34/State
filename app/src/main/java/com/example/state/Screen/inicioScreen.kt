@@ -20,6 +20,8 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardColors
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Shapes
 import androidx.compose.material3.Text
@@ -38,6 +40,7 @@ import androidx.compose.ui.keepScreenOn
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -49,6 +52,7 @@ fun InicioScreen(modifier: Modifier) {
     var recordar by rememberSaveable() { mutableStateOf(false) }
     var intentos by rememberSaveable() { mutableStateOf(0) }
     var correcto by rememberSaveable() { mutableStateOf(false) }
+    var verContra by rememberSaveable() { mutableStateOf(false) }
     if (!correcto) {
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
@@ -87,7 +91,15 @@ fun InicioScreen(modifier: Modifier) {
                     value = contra,
                     onValueChange = { contra = it },
                     label = { Text("Contraseña") },
-                    visualTransformation = PasswordVisualTransformation(),
+                    visualTransformation = if (verContra) {
+                        VisualTransformation.None}else {
+                        PasswordVisualTransformation()
+                    },
+                    trailingIcon = {
+                        IconButton(onClick = { verContra = !verContra}){
+                            if (verContra){ Text("-") } else {Text("0")}
+                        }
+                    },
                     modifier = Modifier.fillMaxWidth()
                 )
                 Row(
@@ -127,7 +139,9 @@ fun InicioScreen(modifier: Modifier) {
         }
     } else {
         Column(
-            modifier = Modifier.fillMaxSize().padding(24.dp),
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(24.dp),
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
