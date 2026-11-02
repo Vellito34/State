@@ -27,11 +27,7 @@ class MainActivity : ComponentActivity() {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
                     var x by remember { mutableStateOf(0) }
                     InicioScreen(
-                        modifier = Modifier.padding(innerPadding),
-                        x,
-                        { x += 1 },
-                        {x -= x}
-
+                        modifier = Modifier.padding(innerPadding)
                     )
                 }
             }
