@@ -192,7 +192,10 @@ fun newGasto( ChangeGasto : (Gastos) -> Unit){
     Column() {
         Text(text = "Nuevo gasto", fontWeight = FontWeight.Bold)
         OutlinedTextField(
-            value = monto
+            value = monto,
+            onValueChange = {monto = it},
+            label = { Text("Monto")},
+            keyboardOptions = KeyboardOptions(KeyboardType.Number)
         )
         ExposedDropdownMenuBox(
             expanded = expandido,
