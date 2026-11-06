@@ -61,34 +61,37 @@ fun gastado(lista: List<Gastos>): Double {
 }
 
 fun mayorGasto(list: List<Gastos>, mayor: (Gastos) -> Unit) {
-    if (list.isNotEmpty()){
-    var gMayor: Gastos = list[0]
-    list.forEach { g ->
-        if (g.monto > gMayor.monto){
-            gMayor = g
+    if (list.isNotEmpty()) {
+        var gMayor: Gastos = list[0]
+        list.forEach { g ->
+            if (g.monto > gMayor.monto) {
+                gMayor = g
+            }
         }
+        mayor(gMayor)
     }
-    mayor(gMayor)}
 }
 
-fun colores (gastado: Double, monto: Double): Color= when(gastado/monto ){
+fun colores(gastado: Double, monto: Double): Color = when (gastado / monto) {
 
-    in 1.00 ..Double.MAX_VALUE ->  Color.Red
-    in 0.8 .. .99 -> Color.Yellow
-    0.00 -> Color.Gray
-    else -> Color.Green
+    in 1.00..Double.MAX_VALUE -> Color.Red
+    in 0.8.. .99 -> Color.Yellow
+    else -> Color.Gray
 }
+
 @Composable
 fun InicioScreen(modifier: Modifier) {
     var ingreso by rememberSaveable() { mutableStateOf("4500.00") }
     var monto = ingreso.toDoubleOrNull() ?: 0.00
-    var gastos = rememberSaveable() { mutableStateListOf<Gastos>() }
+    var gastos = remember() { mutableStateListOf<Gastos>() }
     var gastado = gastado(gastos)
     var Saldo = monto - gastado
     var slider = if (monto > 0) monto.toFloat() else 1f
     var gastadoSlider = gastado.toFloat().coerceIn(0f, slider)
-    var gastoMayor : Gastos = Gastos("",0.00,"")
-    mayorGasto(gastos,{gastoMayor = it})
+    var gastoMayor: Gastos = Gastos("", 0.00, "")
+    mayorGasto(gastos, { gastoMayor = it })
+    var nuevoGasto by remember() { mutableStateOf(Gastos("", 0.00, "")) }
+    var agregar by rememberSaveable() { mutableStateOf(false) }
     LazyColumn(modifier = Modifier.fillMaxSize(), contentPadding = PaddingValues(24.dp)) {
         item {
             Text(text = "Mi presupuesto", fontWeight = FontWeight.Bold)
@@ -111,7 +114,13 @@ fun InicioScreen(modifier: Modifier) {
             Spacer(Modifier.padding(10.dp))
         }
         item {
-            Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(colores(gastado,monto))) {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(
+                    containerColor = colores(gastado, monto),
+                    contentColor = Color.Black
+                )
+            ) {
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
@@ -148,12 +157,12 @@ fun InicioScreen(modifier: Modifier) {
                         valueRange = 0f..slider,
                         enabled = false,
                         colors = SliderDefaults.colors(
-                            activeTrackColor = colores(gastado,monto) ,
+                            activeTrackColor = colores(gastado, monto),
                             thumbColor = Color.Transparent,
                             inactiveTickColor = Color.Gray
                         )
                     )
-                    Text(text = "${(gastado / monto) * 100 }% usado ~ Mayor gasto: ${gastoMayor}")
+                    Text(text = "${(gastado / monto) * 100}% usado ~ Mayor gasto: ${gastoMayor}")
                 }
             }
         }
@@ -161,18 +170,36 @@ fun InicioScreen(modifier: Modifier) {
             aviso(monto, gastado)
         }
         item {
-            newGasto {  }
+            newGasto({ nuevoGasto = it }, { agregar = it })
+            if (agregar) {
+                gastos.add(nuevoGasto)
+                agregar = false
+            }
         }
-
+        item {
+            gastosRecientes(gastos, { gastos.removeAt(it) })
+        }
     }
 }
 
 @Composable
-fun aviso(monto: Double,gastado: Double){
-    if ((gastado/monto) >= 0.8) {
-        Card(modifier = Modifier.fillMaxWidth().background(colores(gastado,monto))) {
-            Box(modifier = Modifier.padding(24.dp).fillMaxSize()){
-                Text(text = "^ Cuidado: pasaste el 80 %", fontWeight = FontWeight.Bold)
+fun aviso(monto: Double, gastado: Double) {
+    if ((gastado / monto) >= 0.8) {
+        Card(
+            modifier = Modifier
+                .fillMaxWidth(),
+            colors = CardDefaults.cardColors(containerColor = colores(gastado, monto))
+        ) {
+            Box(
+                modifier = Modifier
+                    .padding(24.dp)
+                    .fillMaxSize()
+            ) {
+                Text(
+                    text = "^ Cuidado: pasaste el 80 %",
+                    fontWeight = FontWeight.Bold,
+                    color = Color.Black
+                )
             }
         }
     }
@@ -180,11 +207,11 @@ fun aviso(monto: Double,gastado: Double){
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun newGasto( ChangeGasto : (Gastos) -> Unit){
+fun newGasto(ChangeGasto: (Gastos) -> Unit, Agregar: (Boolean) -> Unit) {
     var monto by rememberSaveable() { mutableStateOf("") }
     var gmonto = monto.toDoubleOrNull() ?: 0.00
     var concepto by rememberSaveable() { mutableStateOf("") }
-    val categorias = listOf("Comida","Transporte","Renta","Ocio","Otros")
+    val categorias = listOf("Comida", "Transporte", "Renta", "Ocio", "Otros")
 
     var expandido by rememberSaveable() { mutableStateOf(false) }
     var categoria by rememberSaveable() { mutableStateOf("") }
@@ -192,35 +219,85 @@ fun newGasto( ChangeGasto : (Gastos) -> Unit){
     Column() {
         Text(text = "Nuevo gasto", fontWeight = FontWeight.Bold)
         OutlinedTextField(
-            value = monto,
-            onValueChange = {monto = it},
-            label = { Text("Monto")},
-            keyboardOptions = KeyboardOptions(KeyboardType.Number)
+            value = concepto,
+            onValueChange = { concepto = it },
+            label = { Text("Concepto") },
+            modifier = Modifier.fillMaxWidth()
         )
-        ExposedDropdownMenuBox(
-            expanded = expandido,
-            onExpandedChange = { expandido = it }
-        ) {
+
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
             OutlinedTextField(
-                value = categoria,
-                onValueChange = {},
-                readOnly = true,
-                label = { Text("Categoria") },
-                trailingIcon = { if (!expandido) Text("v") },
-                modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable)
+                value = monto,
+                onValueChange = { monto = it },
+                label = { Text("Monto") },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                modifier = Modifier.fillMaxWidth(0.4f)
             )
-            ExposedDropdownMenu(
+            Spacer(Modifier.padding(8.dp))
+            ExposedDropdownMenuBox(
                 expanded = expandido,
-                onDismissRequest = { expandido = false }
+                onExpandedChange = { expandido = it }
             ) {
-                categorias.forEach { opc ->
-                    DropdownMenuItem(
-                        text = { Text(opc) },
+                OutlinedTextField(
+                    value = categoria,
+                    onValueChange = {},
+                    readOnly = true,
+                    label = { Text("Categoria") },
+                    trailingIcon = { if (!expandido) Text("v") },
+                    modifier = Modifier
+                        .menuAnchor(MenuAnchorType.PrimaryNotEditable)
+                        .fillMaxWidth()
+                )
+                ExposedDropdownMenu(
+                    expanded = expandido,
+                    onDismissRequest = { expandido = false }
+                ) {
+                    categorias.forEach { opc ->
+                        DropdownMenuItem(
+                            text = { Text(opc) },
+                            onClick = {
+                                categoria = opc
+                                expandido = false
+                            }
+                        )
+                    }
+                }
+            }
+        }
+        Button(
+            onClick = {
+                ChangeGasto(Gastos(concepto, gmonto, categoria))
+                Agregar(true)
+                monto = ""
+                concepto = ""
+                categoria = ""
+            },
+            modifier = Modifier.fillMaxWidth()
+        ) { Text("Agregar gasto") }
+    }
+
+}
+
+@Composable
+fun gastosRecientes(lista: List<Gastos>, upEliminar: (Int) -> Unit) {
+    Column(modifier = Modifier.fillMaxSize()) {
+        Text("Gastos recientes")
+        lista.forEachIndexed { i, g ->
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Column(modifier = Modifier.fillMaxHeight()) {
+                    Text(text = g.concepto, fontWeight = FontWeight.Bold)
+                    Text(text = g.categoria)
+                }
+                Row() {
+                    Text(text = "-$${g.monto}", color = Color.Red)
+                    Button(
                         onClick = {
-                            categoria = opc
-                            expandido = false
+                            upEliminar(i)
                         }
-                    )
+                    ) { Text("X") }
                 }
             }
         }
