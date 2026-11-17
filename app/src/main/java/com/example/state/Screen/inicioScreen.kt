@@ -24,6 +24,7 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -40,20 +41,20 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import kotlinx.coroutines.flow.MutableStateFlow
 
 @Composable
-fun screen(modifier: Modifier = Modifier) {
+fun screen(modifier: Modifier = Modifier, viewModel: ScreenViewModel = viewModel()) {
 
-    var fuente by rememberSaveable { mutableStateOf("Serif") }
-    var posicionSlader by rememberSaveable { mutableStateOf(18f) }
-    var interlineado by rememberSaveable { mutableStateOf("Normal") }
-    var modo by rememberSaveable { mutableStateOf(false) }
-    var interElegido = when (interlineado) {
+    val state by viewModel.uiState.collectAsState()
+
+    var interElegido = when (state.interlineado) {
         "Compacto" -> 1f
         "Normal" -> 1.3f
         else -> 1.6f
     }
-    var funteUsada = when (fuente) {
+    var funteUsada = when (state.fuente) {
         "Serif" -> FontFamily.Serif
         else -> FontFamily.SansSerif
     }
@@ -79,14 +80,14 @@ fun screen(modifier: Modifier = Modifier) {
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     Text("Tamaño de letra")
-                    Text(text = "$posicionSlader sp", color = Color.Blue)
+                    Text(text = "${state.posicionSlader} sp", color = Color.Blue)
 
                 }
             }
 
             Slider(
-                value = posicionSlader,
-                onValueChange = { posicionSlader = it },
+                value = state.posicionSlader,
+                onValueChange = viewModel::cambiarTamano,
                 valueRange = 14f..32f,
                 steps = 17
             )
@@ -106,9 +107,9 @@ fun screen(modifier: Modifier = Modifier) {
         item {
             Text(text = "Interlineado")
             Row(Modifier.fillMaxSize(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Button(onClick = { interlineado = "Compacto" }) { Text("Compacto") }
-                Button(onClick = { interlineado = "Normal" }) { Text("Normal") }
-                Button(onClick = { interlineado = "Amplio" }) { Text("Amplio") }
+                Button(onClick = viewModel::compacto) { Text("Compacto") }
+                Button(onClick = viewModel::normal) { Text("Normal") }
+                Button(onClick = viewModel::amplio) { Text("Amplio") }
             }
             Spacer(modifier = Modifier.padding(20.dp))
             Row(
@@ -116,21 +117,17 @@ fun screen(modifier: Modifier = Modifier) {
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Text("Modo oscuro")
-                Switch(checked = modo, onCheckedChange = { modo = it })
+                Switch(checked = state.modo, onCheckedChange = viewModel::cambioModo)
             }
             Spacer(modifier = Modifier.padding(20.dp))
             Row(Modifier.fillMaxSize(), horizontalArrangement = Arrangement.SpaceBetween) {
                 Text("Fuente")
                 Box() {
                     Row(horizontalArrangement = Arrangement.SpaceBetween) {
-                        Button(onClick = {
-                            fuente = "Serif"
-                        }) { Text(text = "Serif") }
+                        Button(onClick = viewModel::serif) { Text(text = "Serif") }
 
                         Spacer(Modifier.padding(10.dp))
-                        Button(onClick = {
-                            fuente = "Sans"
-                        }) { Text(text = "Sans") }
+                        Button(onClick = viewModel::sans) { Text(text = "Sans") }
                     }
                 }
             }
@@ -143,21 +140,21 @@ fun screen(modifier: Modifier = Modifier) {
             Card(
                 modifier = Modifier
                     .fillMaxSize(), colors = CardDefaults.cardColors(
-                    containerColor =  when (modo) {
+                    containerColor = when (state.modo) {
                         true -> Color(0xFF121212)
                         false -> Color.White
                     },
-                        contentColor = when(modo){
-                            true -> Color.White
-                            false -> Color.Black
-                        }
+                    contentColor = when (state.modo) {
+                        true -> Color.White
+                        false -> Color.Black
+                    }
 
                 )
             ) {
                 Text(
                     text = "Era una noche tranquila en el pueblo cuando las campanas comenzaron a sonar, y nadie supo por que",
-                    fontSize = posicionSlader.sp,
-                    lineHeight = (posicionSlader * interElegido).sp,
+                    fontSize = state.posicionSlader.sp,
+                    lineHeight = (state.posicionSlader * interElegido).sp,
                     fontFamily = funteUsada,
                     modifier = Modifier.padding(15.dp)
 
@@ -166,12 +163,10 @@ fun screen(modifier: Modifier = Modifier) {
 
             Spacer(Modifier.padding(20.dp))
 
-            Button(onClick = {
-                posicionSlader = 18f
-                fuente = "Serif"
-                interlineado = "Normal"
-                modo = false
-            }, modifier = Modifier.fillMaxSize()) { Text(text = "Restablecer") }
+            Button(
+                onClick = viewModel::reiniciar,
+                modifier = Modifier.fillMaxSize()
+            ) { Text(text = "Restablecer") }
         }
 
     }
