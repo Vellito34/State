@@ -45,22 +45,39 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.runtime.collectAsState
 
 @Composable
-fun Screen(modifier: Modifier) {
-    var nombre by rememberSaveable() { mutableStateOf("") }
-    var pantalla by rememberSaveable() { mutableStateOf(Pantalla.INICIO) }
-    var puntaje by rememberSaveable() { mutableStateOf(0) }
+fun Screen(modifier: Modifier, viewModel: QuiezViewModel = viewModel) {
+
+    val state by viewModel.uiState.collectAsState()
+
     Column(
         modifier = Modifier
             .padding(24.dp)
             .fillMaxSize()
     ) {
-        when (pantalla) {
-            Pantalla.INICIO -> InicioScreen({ pantalla = it }, { nombre = it })
-            Pantalla.QUIZ ->  preguntaPantalla({ pantalla = it }, { puntaje = it })
+        when (state.pantalla) {
+            Pantalla.INICIO -> InicioScreen(
+                nombre = state.nombre,
+                Upnombre = viewModel::onNombreCambio,
+                viewModel::comenzar
+            )
+
+            Pantalla.QUIZ -> preguntaPantalla(
+                state = state,
+                onSeleccionar = viewModel::seleccionar,
+                onConfirmar = viewModel::confirmar,
+                onSiguiente = viewModel::siguiente
+            )
+
             else -> {
-                ResultadosScreen(puntaje, nombre, { pantalla = it })
+                ResultadosScreen(
+                    puntaje = state.correctas,
+                    nombre = state.nombre,
+                    onReintentar = viewModel::reintentar,
+                    onCambiarJugador = viewModel::cambiarJugador
+                )
             }
         }
 
@@ -68,7 +85,7 @@ fun Screen(modifier: Modifier) {
 }
 
 @Composable
-fun InicioScreen(cambio: (Pantalla) -> Unit, Upnombre: (String) -> Unit) {
+fun InicioScreen(nombre: String, Upnombre: (String) -> Unit, onComenzar: () -> Unit) {
     var nombre by rememberSaveable() { mutableStateOf("") }
     Column(
         Modifier.fillMaxSize(),
@@ -87,7 +104,7 @@ fun InicioScreen(cambio: (Pantalla) -> Unit, Upnombre: (String) -> Unit) {
         Button(
             onClick = {
                 Upnombre(nombre)
-                cambio(Pantalla.QUIZ)
+                onComenzar()
             },
             modifier = Modifier.fillMaxWidth(),
             enabled = nombre.length >= 3
@@ -97,40 +114,34 @@ fun InicioScreen(cambio: (Pantalla) -> Unit, Upnombre: (String) -> Unit) {
 }
 
 @Composable
-fun preguntaPantalla(cambio: (Pantalla) -> Unit, puntaje: (Int) -> Unit) {
-    var correctas by rememberSaveable() { mutableStateOf(0) }
-    var lista = rememberSaveable() {
-        mutableStateListOf(
-            Pregunta("Pregunta 1", listOf("a", "b", "c", "d"), 0),
-            Pregunta("Pregunta 2", listOf("a", "b", "c", "d"), 1),
-            Pregunta("Pregunta 3", listOf("a", "b", "c", "d"), 2),
-            Pregunta("Pregunta 4", listOf("a", "b", "c", "d"), 3),
-            Pregunta("Pregunta 5", listOf("a", "b", "c", "d"), 0)
-        )
-    }
-    var preguntaActual by rememberSaveable() { mutableStateOf(0) }
-    val totalPregunta = lista.size
-    var seleccionada by rememberSaveable() { mutableStateOf(-1) }
-    var respondio by rememberSaveable() { mutableStateOf(false) }
+fun preguntaPantalla(
+    state: QuizUiState,
+    onSeleccionar: (Int) -> Unit,
+    onConfirmar: () -> Unit,
+    onSiguiente: () -> Unit
+) {
 
     Column(modifier = Modifier.fillMaxSize()) {
         Text("Quiz de programacion")
         Spacer(Modifier.padding(20.dp))
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            Text(text = "Pregunta ${preguntaActual + 1} de $totalPregunta", fontSize = 15.sp)
-            Text(text = "Puntaje: $correctas")
+            Text(
+                text = "Pregunta ${state.preguntaActual + 1} de ${state.totalPreguntas}",
+                fontSize = 15.sp
+            )
+            Text(text = "Puntaje: ${state.correctas}")
         }
         LinearProgressIndicator(
-            progress = { preguntaActual / totalPregunta.toFloat() },
+            progress = { state.preguntaActual / state.totalPreguntas.toFloat() },
             modifier = Modifier.fillMaxWidth()
         )
         Spacer(Modifier.padding(10.dp))
-        Text(text = lista[preguntaActual].texto, fontWeight = FontWeight.Bold)
-        lista[preguntaActual].opciones.forEachIndexed { i, opc ->
+        Text(text = state.pregunta.texto, fontWeight = FontWeight.Bold)
+        state.pregunta.opciones.forEachIndexed { i, opc ->
             var color = when {
-                !respondio -> Color.Transparent
-                i == lista[preguntaActual].correcta -> Color.Green
-                i == seleccionada -> Color.Red
+                !state.respondio -> Color.Transparent
+                i == state.pregunta.correcta -> Color.Green
+                i == state.seleccionada -> Color.Red
                 else -> Color.Transparent
             }
             Row(
@@ -139,9 +150,9 @@ fun preguntaPantalla(cambio: (Pantalla) -> Unit, puntaje: (Int) -> Unit) {
                     .background(color), verticalAlignment = Alignment.CenterVertically
             ) {
                 RadioButton(
-                    selected = seleccionada == i,
-                    onClick = { seleccionada = i },
-                    enabled = !respondio
+                    selected = state.seleccionada == i,
+                    onClick = { onSeleccionar(i) },
+                    enabled = !state.respondio
                 )
                 Text(text = opc, fontWeight = FontWeight.Bold)
             }
@@ -151,34 +162,31 @@ fun preguntaPantalla(cambio: (Pantalla) -> Unit, puntaje: (Int) -> Unit) {
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
             Button(
                 onClick = {
-                    if (seleccionada == lista[preguntaActual].correcta) correctas++
-                    respondio = true
+                    onConfirmar
                 },
-                enabled = seleccionada != -1 && !respondio,
+                enabled = state.seleccionada != -1 && !state.respondio,
                 modifier = Modifier.fillMaxWidth(0.4f)
             ) { Text("Confirmar") }
 
             Button(
                 onClick = {
-                    if (preguntaActual == totalPregunta - 1) {
-                        puntaje(correctas)
-                        cambio(Pantalla.RESULTADO)
-                    } else {
-                        preguntaActual++
-                        seleccionada = -1
-                        respondio = false
-                    }
+                    onSiguiente
                 },
-                enabled = respondio,
+                enabled = state.respondio,
                 modifier = Modifier.fillMaxWidth()
-            ) { Text(if (preguntaActual == totalPregunta - 1) "Terminar" else "Siguiete") }
+            ) { Text(if (state.esUltima) "Terminar" else "Siguiete") }
         }
     }
 
 }
 
 @Composable
-fun ResultadosScreen(puntaje: Int, nombre: String, cambio: (Pantalla) -> Unit) {
+fun ResultadosScreen(
+    puntaje: Int,
+    nombre: String,
+    onReintentar: () -> Unit,
+    onCambiarJugador: () -> Unit
+) {
     var Resultados = when (puntaje) {
         5 -> "Excelente, $nombre!"
         in 3..4 -> "Buen trabajo, $nombre!"
@@ -198,20 +206,18 @@ fun ResultadosScreen(puntaje: Int, nombre: String, cambio: (Pantalla) -> Unit) {
             ) {
                 Text(text = Resultados)
 
-
-
                 Button(
                     onClick = {
-                        cambio(Pantalla.QUIZ)
+                        onReintentar
                     },
                 ) { Text("Reintentar") }
                 Spacer(Modifier.padding(10.dp))
 
-                    Button(
-                        onClick = {
-                            cambio(Pantalla.INICIO)
-                        },
-                    ) { Text("Cambiar Jugador") }
+                Button(
+                    onClick = {
+                        onCambiarJugador
+                    },
+                ) { Text("Cambiar Jugador") }
 
             }
 
