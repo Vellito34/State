@@ -23,6 +23,7 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -41,24 +42,23 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.unit.times
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.state.R
 
 @Composable
-fun afore(modifier: Modifier) {
-    var personasActuales by rememberSaveable { mutableStateOf(0) }
-    var visitasDelDia by rememberSaveable { mutableStateOf(0) }
-    val capacidad: Int = 50
-    var porcentaje = personasActuales / capacidad.toFloat()
+fun afore(modifier: Modifier,viewModel: AforeViewModel = viewModel() ) {
+
+    val state by viewModel.uiState.collectAsState()
 
     val fondo = when {
-        porcentaje <= 0.7f -> colorResource(R.color.verdeClaro)
-        porcentaje > 0.7f && porcentaje <= 0.99f -> colorResource(R.color.naranja)
+        state.porcentaje <= 0.7f -> colorResource(R.color.verdeClaro)
+        state.porcentaje > 0.7f && state.porcentaje <= 0.99f -> colorResource(R.color.naranja)
         else -> colorResource(R.color.rojo)
     }
 
     val odjetos = when {
-        porcentaje <= 0.7f -> colorResource(R.color.verde)
-        porcentaje > 0.7f && porcentaje <= 0.99f -> Color.Yellow
+        state.porcentaje <= 0.7f -> colorResource(R.color.verde)
+        state.porcentaje > 0.7f && state.porcentaje <= 0.99f -> Color.Yellow
         else -> Color.Red
     }
 
@@ -73,7 +73,7 @@ fun afore(modifier: Modifier) {
 
                 Spacer(modifier = Modifier.padding(20.dp))
 
-                Text("Sala de estudio ~ capacidad $capacidad")
+                Text("Sala de estudio ~ capacidad ${state.capacidad}")
             }
         }
 
@@ -85,7 +85,7 @@ fun afore(modifier: Modifier) {
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(
-                        text = "$personasActuales / $capacidad",
+                        text = "${state.personasActuales} / ${state.capacidad}",
                         fontSize = 50.sp,
                         color = odjetos,
                         fontWeight = FontWeight.Bold
@@ -97,7 +97,7 @@ fun afore(modifier: Modifier) {
 
                     //linea de carga
                     LinearProgressIndicator(
-                        progress = { porcentaje },
+                        progress = { state.porcentaje },
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(8.dp)
@@ -107,7 +107,7 @@ fun afore(modifier: Modifier) {
                     )
 
                     Text(
-                        text = "${(porcentaje * 100).toInt()} % de opcupación",
+                        text = "${(state.porcentaje * 100).toInt()} % de opcupación",
                         color = odjetos,
                         fontWeight = FontWeight.Bold
                     )
@@ -124,21 +124,16 @@ fun afore(modifier: Modifier) {
             Row(modifier = Modifier.fillMaxWidth()) {
                 Button(
                     onClick = {
-                        personasActuales--
-                    }, enabled = personasActuales != 0,
+                        viewModel :: quitarpersonas
+                    }, enabled = state.personasActuales > 0,
                     modifier = Modifier.weight(0.4f)
                 ) { Text("- Sale") }
 
                 Spacer(modifier = Modifier.weight(0.1f))
 
                 Button(
-                    onClick = {
-
-                        personasActuales++
-                        visitasDelDia++
-
-                    },
-                    enabled = personasActuales != capacidad,
+                    onClick = viewModel ::agregarPersonas,
+                    enabled = state.personasActuales != state.capacidad,
                     modifier = Modifier.weight(0.4f)
                 ) { Text("+ Entra") }
 
@@ -146,13 +141,8 @@ fun afore(modifier: Modifier) {
             Spacer(modifier = Modifier.padding(10.dp))
 
             Button(
-                onClick = {
-                    if (personasActuales < (capacidad - 4))
-                        personasActuales = (personasActuales + 5).coerceAtMost(capacidad)
-                    visitasDelDia = (visitasDelDia + 5)
-
-                },
-                enabled = personasActuales < (capacidad - 4),
+                onClick = viewModel::agregar5Personas,
+                enabled = state.personasActuales < (state.capacidad - 4),
                 modifier = Modifier.fillMaxWidth()
             ) { Text("+ 5") }
             Spacer(modifier = Modifier.padding(20.dp))
@@ -168,7 +158,7 @@ fun afore(modifier: Modifier) {
                     }
 
                     Text(
-                        text = "$visitasDelDia",
+                        text = "${state.visitasDeDia}",
                         fontWeight = FontWeight.Bold,
                         fontSize = 40.sp
                     )
@@ -177,10 +167,7 @@ fun afore(modifier: Modifier) {
             }
             Spacer(modifier = Modifier.padding(40.dp))
             Button(
-                onClick = {
-                    personasActuales = 0
-                    visitasDelDia = 0
-                },
+                onClick = viewModel::corte,
                 modifier = Modifier.fillMaxWidth(),
                 border = BorderStroke(1.dp, Color.Red)
             ) { Text(text = "Cerrar dia",color = Color.Red) }
