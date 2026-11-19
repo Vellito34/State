@@ -36,6 +36,7 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -50,6 +51,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import kotlinx.coroutines.flow.MutableStateFlow
 
 fun validarCorreo(c: String): Boolean {
     var con = 0
@@ -84,43 +87,33 @@ fun validarEdad(e: String): Boolean {
 }
 
 fun validarTaller(t: String): Boolean {
-    if (t.equals("Taller")) {
-        return true
-    }
-    return false
+    return t.isNotEmpty()
 }
 
 @Composable
-fun InscripcionScreen(modifier: Modifier = Modifier) {
+fun InscripcionScreen(
+    modifier: Modifier = Modifier,
+    viewModel: InscripcionViewModel = viewModel()
+) {
 
-    var nombre by rememberSaveable { mutableStateOf("") }
-    var correo by rememberSaveable { mutableStateOf("") }
-    var edad by rememberSaveable { mutableStateOf("") }
+    val state by viewModel.uiState.collectAsState()
 
-    var taller by rememberSaveable { mutableStateOf("Taller") }
+    val formularioValido = validarNombre(state.nombre) &&
+            validarCorreo(state.correo) &&
+            validarEdad(state.edad) &&
+            validarTaller(state.taller) &&
+            state.aceptaAviso
 
-    var aceptaAviso by rememberSaveable { mutableStateOf(false) }
-
-    var inscrito by rememberSaveable { mutableStateOf(false) }
-
-    var validaciones by rememberSaveable { mutableStateOf((false)) }
-    var nuevo by rememberSaveable { mutableStateOf((false)) }
-    if (nuevo) {
+    if (state.inscrito) {
         Box(contentAlignment = Alignment.Center) {
 
-            nuevo = confirmacion(
-                nombre = nombre,
-                correo = correo,
-                edad = edad,
-                taller = taller,
-                Nueva = {
-                    nombre = ""
-                    correo = ""
-                    edad = ""
-                    taller = "Taller"
-                    aceptaAviso = false
-                    inscrito = false
-                })
+            confirmacion(
+                nombre = state.nombre,
+                correo = state.correo,
+                edad = state.edad,
+                taller = state.taller,
+
+            )
 
         }
 
@@ -137,54 +130,54 @@ fun InscripcionScreen(modifier: Modifier = Modifier) {
                 Text(text = "Casa del Lago ~ cupo limitado")
 
                 OutlinedTextField(
-                    value = nombre,
-                    onValueChange = { nuevo -> nombre = nuevo },
+                    value = state.nombre,
+                    onValueChange = viewModel::nombreChange,
                     label = { Text("Nombre completo") },
                     placeholder = { Text("Nombre Completo") },
                     modifier = Modifier.fillMaxWidth(),
-                    isError = !validarNombre(nombre),
+                    isError = !validarNombre(state.nombre),
                     supportingText = {
-                        if (!validarNombre(nombre)) {
+                        if (!validarNombre(state.nombre)) {
                             Text("Minimo 3 caracteres")
                         }
                     }
                 )
                 TextField(
-                    value = correo,
-                    onValueChange = { nuevo -> correo = nuevo },
+                    value = state.correo,
+                    onValueChange = viewModel::correoChange,
                     label = { Text("Correo") },
                     placeholder = { Text("Correo") },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
                     modifier = Modifier.fillMaxWidth(),
-                    isError = !validarCorreo(correo),
+                    isError = !validarCorreo(state.correo),
                     supportingText = {
-                        if (!validarCorreo(correo)) {
+                        if (!validarCorreo(state.correo)) {
                             Text("Ingresa un correo valido")
                         }
                     }
                 )
                 TextField(
-                    value = edad,
-                    onValueChange = { nuevo -> edad = nuevo.filter { it.isDigit() } },
+                    value = state.edad,
+                    onValueChange = viewModel::edadChange,
                     label = { Text("Edad") },
                     placeholder = { Text("Edad") },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     modifier = Modifier.fillMaxWidth(),
-                    isError = !validarEdad(edad),
+                    isError = !validarEdad(state.edad),
                     supportingText = {
-                        if (!validarEdad(edad)) {
+                        if (!validarEdad(state.edad)) {
                             Text("Edad no valida")
                         }
                     }
                 )
 
-                SeleccionarTaller(taller, { taller = it })
+                SeleccionarTaller(state.taller, onTallerChange = viewModel::tallerChange)
 
             }
 
             item {
                 Row(modifier = Modifier.fillMaxWidth()) {
-                    Checkbox(checked = aceptaAviso, onCheckedChange = { aceptaAviso = it })
+                    Checkbox(checked = state.aceptaAviso, onCheckedChange = viewModel::avisoChange)
                     Spacer(Modifier.padding(7.dp))
                     Column() {
                         Spacer(Modifier.padding(6.dp))
@@ -192,24 +185,12 @@ fun InscripcionScreen(modifier: Modifier = Modifier) {
                     }
                 }
             }
-            if (validarNombre(nombre) && aceptaAviso && !correo.equals("") && validarEdad(edad) && !validarTaller(
-                    taller
-                )
-            ) {
-                validaciones = true
-            } else {
-                validaciones = false
-            }
+
             item {
                 Button(
-                    onClick = {
-                        if (validaciones) {
-
-                            inscrito = true
-                        }
-                    },
+                    onClick = viewModel::inscribir,
                     modifier = Modifier.fillMaxWidth(),
-                    enabled = validaciones
+                    enabled = formularioValido
                 ) { Text(text = "Inscribirme") }
                 Text(
                     text = "Quedan 6 lugares en este taller",
@@ -229,8 +210,7 @@ fun confirmacion(
     edad: String,
     correo: String,
     taller: String,
-    Nueva: () -> Unit
-): Boolean {
+){
     var confirmar by rememberSaveable { mutableStateOf(true) };
     Column(
         modifier = Modifier
@@ -280,13 +260,12 @@ fun confirmacion(
         }
 
     }
-    return confirmar;
 }
 
 @Composable
 fun SeleccionarTaller(
     taller: String,
-    cambioTaller: (String) -> Unit,
+    onTallerChange: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val talleres = listOf("Pintura", "Fotografía", "Guitarra")
@@ -302,7 +281,6 @@ fun SeleccionarTaller(
             modifier = Modifier.fillMaxWidth()
         )
 
-        // Capa invisible encima del campo que recibe el toque
         Box(
             modifier = Modifier
                 .matchParentSize()
@@ -317,7 +295,7 @@ fun SeleccionarTaller(
                 DropdownMenuItem(
                     text = { Text(opcion) },
                     onClick = {
-                        cambioTaller(opcion)
+                        onTallerChange(opcion)
                         expandido = false
                     }
                 )
