@@ -38,6 +38,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
 
 fun califi(valor: Int): String = when (valor) {
     2 -> "Regular"
@@ -48,25 +50,21 @@ fun califi(valor: Int): String = when (valor) {
 }
 
 @Composable
-fun InicioScreen(modifier: Modifier) {
-    var comida by rememberSaveable() { mutableStateOf(0) }
-    var servicio by rememberSaveable() { mutableStateOf(0) }
-    var ambiente by rememberSaveable() { mutableStateOf(0) }
-    var comentario by rememberSaveable() { mutableStateOf("") }
-    var etiquetaSel by rememberSaveable() { mutableStateOf(listOf<String>()) }
-    var publicada by rememberSaveable() { mutableStateOf(false) }
+fun InicioScreen(modifier: Modifier,viewModel: ReseñaViewModel = viewModel() ) {
 
-    if (!publicada) {
+    val state by viewModel.uiSate.collectAsStateWithLifecycle()
+
+    if (!state.publicada) {
         LazyColumn(modifier = Modifier.fillMaxSize(), contentPadding = PaddingValues(24.dp)) {
             item {
                 Text(text = "Restaurante El Mezquite", fontWeight = FontWeight.Bold)
                 Text(text = "Califica tu experiencia", fontWeight = FontWeight.Light)
                 Spacer(modifier = Modifier.padding(10.dp))
-                estrellas("Comida", comida, { comida = it })
+                estrellas("Comida", state.comida, viewModel::comidaChange)
                 Spacer(modifier = Modifier.padding(10.dp))
-                estrellas("Servicio", servicio, { servicio = it })
+                estrellas("Servicio", state.servicio, viewModel::servicioChange)
                 Spacer(modifier = Modifier.padding(10.dp))
-                estrellas("Ambiente", ambiente, { ambiente = it })
+                estrellas("Ambiente", state.ambiente, viewModel::ambienteChange)
                 Spacer(modifier = Modifier.padding(15.dp))
             }
             item {
@@ -86,7 +84,7 @@ fun InicioScreen(modifier: Modifier) {
                         ) {
                             Text("Calificacion genereal")
                             Row() {
-                                Text(text = "${((comida + ambiente + servicio).toDouble() / 3)}")
+                                Text(text = "${state.caliGeneral}")
                                 Box(
                                     modifier = Modifier
                                         .background(color = Color.Yellow, shape = CircleShape)
@@ -100,49 +98,45 @@ fun InicioScreen(modifier: Modifier) {
             item {
                 Spacer(Modifier.padding(10.dp))
                 OutlinedTextField(
-                    value = comentario,
-                    onValueChange = {
-                        if (comentario.length <= 200) {
-                            comentario = it
-                        }
-                    },
+                    value = state.comentario,
+                    onValueChange = viewModel::comentarioChange,
                     label = { Text("Escribe un comentario") },
                     modifier = Modifier.fillMaxWidth(),
                     supportingText = {
-                        if (comentario.length == 200) Text("Se llegaron a los carracteres maximos") else Text(
-                            text = "${comentario.length}/200",
+                        if (state.comentario.length == 200) Text("Se llegaron a los carracteres maximos") else Text(
+                            text = "${state.comentario.length}/200",
                             textAlign = TextAlign.End,
                             modifier = Modifier.fillMaxWidth()
                         )
                     },
-                    isError = comentario.length >= 180,
+                    isError = state.comentario.length >= 180,
                 )
             }
             item {
                 Spacer(modifier = Modifier.padding(10.dp))
-                etiquetas(etiquetaSel, { etiquetaSel = it })
+                etiquetas(state.eitquetaSel, viewModel::etiquetaChange)
             }
             item {
                 Button(
-                    onClick = { publicada = true },
+                    onClick = viewModel::publicar,
                     modifier = Modifier.fillMaxWidth(),
-                    enabled = ((comida + ambiente + servicio).toDouble() / 3) != 0.0 && comentario.length >= 20
-                ) { Text("Publicar") }
+                    enabled = (state.validar) )
+                    { Text("Publicar") }
             }
         }
     } else{
         Card(modifier = Modifier.padding(15.dp)) {
             Column(modifier =  Modifier.fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
-                Text(text = "Comida : $comida")
+                Text(text = "Comida : ${state.comida}")
                 Spacer(modifier = Modifier.padding(5.dp))
-                Text(text = "Servicio : $servicio")
+                Text(text = "Servicio : ${state.servicio}")
                 Spacer(modifier = Modifier.padding(5.dp))
-                Text(text = "Ambiente : $ambiente")
+                Text(text = "Ambiente : ${state.ambiente}")
                 Spacer(modifier = Modifier.padding(5.dp))
                 Text("Etiquetas: ")
-                etiquetaSel.forEach { e -> Text(text = e) }
+                state.eitquetaSel.forEach { e -> Text(text = e) }
                 Spacer(modifier = Modifier.padding(5.dp))
-                Text("Comentario: \n$comentario", textAlign = TextAlign.Center)
+                Text("Comentario: \n${state.comentario}", textAlign = TextAlign.Center)
 
             }
         }
