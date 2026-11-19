@@ -42,6 +42,8 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
 
 fun colores(prioridad: String): Color = when (prioridad) {
 
@@ -55,15 +57,13 @@ fun colores(prioridad: String): Color = when (prioridad) {
 }
 
 @Composable
-fun InicioScreen(modifier: Modifier) {
-    var titulo by rememberSaveable() { mutableStateOf("") }
-    var prioridad by rememberSaveable() { mutableStateOf("Media") }
-    var lista = rememberSaveable() { mutableStateListOf<Tarea>() }
-    var id by rememberSaveable() { mutableStateOf(0) }
-    var filtro by rememberSaveable() { mutableStateOf("Todas") }
-    var restablecer by rememberSaveable() { mutableStateOf(false) }
+fun InicioScreen(modifier: Modifier,viewModel: TareaViewModel = viewModel() ) {
+
+    val state by viewModel.uiState.collectAsStateWithLifecycle()
+
+
     LazyColumn(modifier = modifier, contentPadding = PaddingValues(24.dp)) {
-        item { }
+
         item {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -71,21 +71,15 @@ fun InicioScreen(modifier: Modifier) {
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 TextField(
-                    value = titulo,
-                    onValueChange = { titulo = it },
+                    value = state.titulo,
+                    onValueChange = viewModel::tituloChange,
                     label = { Text("Nueva tarea") },
                     modifier = Modifier
                         .weight(0.7f)
                         .height(64.dp)
                 )
                 Button(
-                    onClick = {
-                        if (titulo.isNotBlank()) {
-                            lista.add(Tarea(id, titulo, prioridad))
-                            id++
-                            titulo = ""
-                        }
-                    },
+                    onClick = viewModel::save,
                     modifier = Modifier
                         .height(64.dp)
                         .weight(0.2f),
@@ -99,36 +93,33 @@ fun InicioScreen(modifier: Modifier) {
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(text = "Prioridad")
-                prioridad(prioridad, { prioridad = it })
+                prioridad(state.prioridad, viewModel::prioridadChange)
             }
             Spacer(Modifier.padding(10.dp))
-            filtros(filtro, { filtro = it })
+            filtros(state.filtro, viewModel::filtroChange)
         }
 
         item {
-            lista(lista, { lista.remove(it) }, filtro)
+            lista(state.lista, viewModel::delete, state.filtro)
             Spacer(Modifier.padding(10.dp))
             Button(
-                onClick = { restablecer = true },
+                onClick = viewModel::sirestablecerChange,
                 modifier = Modifier.fillMaxWidth()
             ) { Text("Borrar completadas") }
         }
     }
-    if (restablecer) {
+    if (state.restablecer) {
         AlertDialog(
-            onDismissRequest = { restablecer = false },
+            onDismissRequest = viewModel::norestablecerChange,
             title = { Text("Borrar completadas") },
             text = { Text(" Seguro que quieres eliminar las tareas completadas?") },
             confirmButton = {
-                TextButton(onClick = {
-                    lista.removeAll { it.hecha }
-                    restablecer = false
-                }) {
+                TextButton(onClick =  viewModel::borrarCompletadas ) {
                     Text("Borrar")
                 }
             },
             dismissButton = {
-                TextButton(onClick = { restablecer = false }) { Text("Cancelar") }
+                TextButton(onClick = viewModel::norestablecerChange) { Text("Cancelar") }
             }
         )
     }
@@ -164,7 +155,7 @@ fun prioridad(prioridad: String, UpPrioridad: (String) -> Unit) {
 }
 
 @Composable
-fun lista(lista: List<Tarea>, eliminar: (Tarea) -> Unit, filtro: String) {
+fun lista(lista: List<Tarea>, eliminar: (Int) -> Unit, filtro: String) {
     val mostrar = when (filtro) {
         "Pendientes" -> lista.filter { !it.hecha }
         "Hechas" -> lista.filter { it.hecha }
@@ -196,7 +187,7 @@ fun lista(lista: List<Tarea>, eliminar: (Tarea) -> Unit, filtro: String) {
                         }
                     }
                 }
-                IconButton(onClick = { eliminar(t) }) { Text("X") }
+                IconButton(onClick = { eliminar(t.id) }) { Text("X") }
             }
         }
     }
