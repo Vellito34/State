@@ -44,16 +44,15 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
 
 @Composable
-fun InicioScreen(modifier: Modifier) {
-    var correo by rememberSaveable() { mutableStateOf("") }
-    var contra by rememberSaveable() { mutableStateOf("") }
-    var recordar by rememberSaveable() { mutableStateOf(false) }
-    var intentos by rememberSaveable() { mutableStateOf(0) }
-    var correcto by rememberSaveable() { mutableStateOf(false) }
-    var verContra by rememberSaveable() { mutableStateOf(false) }
-    if (!correcto) {
+fun InicioScreen(modifier: Modifier,viewModel: loginViewModel = viewModel() ) {
+
+    val state by viewModel.uiState.collectAsStateWithLifecycle()
+
+    if (!state.correcto) {
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(24.dp),
@@ -79,8 +78,8 @@ fun InicioScreen(modifier: Modifier) {
             }
             item {
                 OutlinedTextField(
-                    value = correo,
-                    onValueChange = { nuevo -> correo = nuevo },
+                    value = state.correo,
+                    onValueChange = viewModel::correoChange,
                     label = { Text("Correo") },
                     placeholder = { Text("Correo") },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
@@ -88,16 +87,16 @@ fun InicioScreen(modifier: Modifier) {
                 )
                 Spacer(Modifier.padding(5.dp))
                 OutlinedTextField(
-                    value = contra,
-                    onValueChange = { contra = it },
+                    value = state.contra,
+                    onValueChange = viewModel::contraChange,
                     label = { Text("Contraseña") },
-                    visualTransformation = if (verContra) {
+                    visualTransformation = if (state.verContra) {
                         VisualTransformation.None}else {
                         PasswordVisualTransformation()
                     },
                     trailingIcon = {
-                        IconButton(onClick = { verContra = !verContra}){
-                            if (verContra){ Text("-") } else {Text("0")}
+                        IconButton(onClick = viewModel::verContraChange){
+                            if (state.verContra){ Text("-") } else {Text("0")}
                         }
                     },
                     modifier = Modifier.fillMaxWidth()
@@ -107,33 +106,25 @@ fun InicioScreen(modifier: Modifier) {
                     horizontalArrangement = Arrangement.spacedBy(10.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Checkbox(checked = recordar, onCheckedChange = { recordar = it })
+                    Checkbox(checked = state.recordar, onCheckedChange = viewModel::recordarChange)
                     Text("Recordarme")
                 }
             }
             item {
                 Spacer(Modifier.padding(10.dp))
-                if (intentos >= 1) {
+                if (state.intentos >= 1) {
                     Card(
                         modifier.fillMaxWidth(),
                         colors = CardDefaults.cardColors(containerColor = Color.Red),
                     ) {
                         Text(text = "Correo o contraseña incorrectos", fontWeight = FontWeight.Bold)
-                        Text("(intento $intentos de 3)")
+                        Text("(intento ${state.intentos} de 3)")
                     }
                 }
                 Spacer(Modifier.padding(10.dp))
                 Button(
-                    onClick = {
-                        if (correo != "paciente@vida.mx" && contra != "Vida2025") {
-                            intentos++
-                            correo = ""
-                            contra = ""
-                        } else {
-                            correcto = true
-                        }
-                    },
-                    enabled = intentos < 3, modifier = Modifier.fillMaxWidth()
+                    onClick = viewModel::correcto,
+                    enabled = state.intentos < 3, modifier = Modifier.fillMaxWidth()
                 ) {Text("Entrar") }
             }
         }
@@ -147,7 +138,7 @@ fun InicioScreen(modifier: Modifier) {
         ) {
             Text(text = "Bienvenido")
             Button(
-                onClick = { correcto = false },
+                onClick = viewModel::correctoChange,
                 modifier = Modifier.fillMaxWidth()
             ) { Text("Cerrar Secion") }
         }
