@@ -1,6 +1,5 @@
 package com.example.state.Screen
 
-import android.service.autofill.OnClickAction
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -15,32 +14,26 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
-import androidx.compose.material3.OutlinedIconButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.keepScreenOn
-import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import kotlin.contracts.Returns
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Slider
-import androidx.compose.runtime.mutableFloatStateOf
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
 import kotlin.math.roundToInt
 
 fun divi(n1: Double, n2: Double): Double {
@@ -53,20 +46,17 @@ fun total(n1: Double, desc: Double): Double {
 
 
 @Composable
-fun InicioScreen(modifier: Modifier) {
-    var cantidad by rememberSaveable { mutableStateOf(1) }
-    var monto by rememberSaveable { mutableStateOf("") }
-    var propina by rememberSaveable { mutableStateOf(0.00) }
-    var rendondear by rememberSaveable() { mutableStateOf(false) }
-    val dinero = monto.toDoubleOrNull() ?: 0.00
+fun InicioScreen(modifier: Modifier, viewModel: DatosViewModel = viewModel()) {
+
+    val state by viewModel.uiState.collectAsStateWithLifecycle()
 
     LazyColumn(contentPadding = PaddingValues(24.dp)) {
         item {
             Text(text = "Cuenta dividida", fontSize = 30.sp, fontWeight = FontWeight.Bold)
             Spacer(Modifier.padding(20.dp))
             OutlinedTextField(
-                value = monto,
-                onValueChange = { monto = it },
+                value = state.monto,
+                onValueChange = viewModel::montoChange,
                 label = { Text("monto") },
                 placeholder = { Text("Monto de la cuenta") },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
@@ -80,7 +70,7 @@ fun InicioScreen(modifier: Modifier) {
             Column(modifier = Modifier.fillMaxSize()) {
                 Text(text = "Propina")
                 Row() {
-                    propina(propina, { propina = it })
+                    propina(propina = state.propina, viewModel::propinaChange)
                 }
             }
             Spacer(Modifier.padding(10.dp))
@@ -93,7 +83,11 @@ fun InicioScreen(modifier: Modifier) {
             ) {
                 Text(text = "Personas")
 
-                cantidad = SelectP(cantidad)
+                SelectP(
+                    cantidad = state.cantidad,
+                    viewModel::menosCantidad,
+                    viewModel::menosCantidad
+                )
             }
             Spacer(Modifier.padding(5.dp))
         }
@@ -104,12 +98,22 @@ fun InicioScreen(modifier: Modifier) {
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text("Redondear por persona")
-                Switch(checked = rendondear, onCheckedChange = { rendondear = it })
+                Switch(checked = state.rendondear, onCheckedChange = viewModel::redondear)
             }
             Spacer(Modifier.padding(10.dp))
 
         }
-        item { Resumen(propina, dinero, cantidad,rendondear) }
+        item {
+            Resumen(
+                propina = state.propina,
+                monto = state.dinero,
+                porPersona = state.porPersona,
+                propinaMonto = state.propinaMonto,
+                personas = state.cantidad,
+                demas = state.sobrante,
+                total = state.total
+            )
+        }
 
     }
 }
@@ -155,12 +159,12 @@ fun propina(propina: Double, UpPropina: (Double) -> Unit) {
 }
 
 @Composable
-fun SelectP(cantidad: Int): Int {
-    var personas by rememberSaveable { mutableStateOf(cantidad) }
+fun SelectP(cantidad: Int, onMenos: () -> Unit, onMas: () -> Unit) {
+
     Row(verticalAlignment = Alignment.CenterVertically) {
         Button(
-            onClick = { personas-- },
-            enabled = (personas > 1),
+            onClick = onMenos,
+            enabled = (cantidad > 1),
             shape = CircleShape,
             modifier = Modifier.size(50.dp)
         ) {
@@ -168,30 +172,32 @@ fun SelectP(cantidad: Int): Int {
             Text(text = "-", textAlign = TextAlign.Center)
         }
         Spacer(Modifier.padding(5.dp))
-        Text("$personas")
+        Text("$cantidad")
         Spacer(Modifier.padding(5.dp))
         Button(
-            onClick = { personas++ },
-            enabled = (personas < 20),
+            onClick = onMas,
+            enabled = (cantidad < 20),
             shape = CircleShape,
             modifier = Modifier.size(50.dp)
         ) {
             Text(text = "+", textAlign = TextAlign.Center)
         }
     }
-    return personas
+
 
 }
 
 @Composable
-fun Resumen(propina: Double, monto: Double, personas: Int,redeo : Boolean) {
-    var total = total(monto, propina)
-    var porPersona = divi(total,personas.toDouble())
-    var demas = 0.00
-    if (redeo) {
-        porPersona = Math.ceil(porPersona)
-        demas = porPersona * personas - total
-    }
+fun Resumen(
+    propina: Double,
+    monto: Double,
+    porPersona: Double,
+    propinaMonto: Double,
+    personas: Int,
+    demas: Double,
+    total: Double
+) {
+
     Card(modifier = Modifier.fillMaxSize()) {
         Column(
             modifier = Modifier
